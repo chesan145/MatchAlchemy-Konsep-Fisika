@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alchemy Fisika SMP - Game Pembelajaran Interaktif</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .elements-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+        }
+
+        .elements-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .element-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .element {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .element:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .element.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .element.discovered {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+
+        .mixing-area {
+            background: #ecf0f1;
+            border: 3px dashed #bdc3c7;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .mixing-area.drag-over {
+            border-color: #3498db;
+            background: #e8f4fd;
+        }
+
+        .mixing-slots {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .mixing-slot {
+            width: 100px;
+            height: 100px;
+            border: 2px dashed #95a5a6;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            font-size: 0.8rem;
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        .mixing-slot.filled {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            font-weight: 600;
+        }
+
+        .combine-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .combine-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .combine-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .discovered-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+        }
+
+        .discovered-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .discovered-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .discovered-item {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .result-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            opacity: 0;
+            animation: resultPop 2s ease-in-out;
+            z-index: 10;
+        }
+
+        @keyframes resultPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: #34495e;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .element-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🧪 Alchemy Fisika SMP</h1>
+            <p>Gabungkan konsep fisika untuk menemukan rumus dan fenomena baru!</p>
+        </div>
+
+        <div class="game-area">
+            <div class="elements-panel">
+                <h3>📚 Konsep Dasar</h3>
+                <div class="element-grid" id="elementsGrid">
+                    <!-- Elements will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="mixing-area" id="mixingArea">
+                <h3>🔬 Area Pencampuran</h3>
+                <div class="mixing-slots">
+                    <div class="mixing-slot" id="slot1">Konsep 1</div>
+                    <div class="mixing-slot" id="slot2">Konsep 2</div>
+                </div>
+                <button class="combine-btn" id="combineBtn" disabled>Gabungkan!</button>
+                <button class="clear-btn" id="clearBtn">Bersihkan</button>
+            </div>
+
+            <div class="discovered-panel">
+                <h3>🏆 Penemuan</h3>
+                <div class="discovered-grid" id="discoveredGrid">
+                    <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                        Mulai gabungkan konsep untuk menemukan rumus fisika!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-number" id="discoveredCount">0</span>
+                <span>Penemuan</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="combinationsCount">0</span>
+                <span>Percobaan</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data konsep fisika dan kombinasinya
+        const baseElements = [
+            { id: 'jarak', name: 'Jarak (s)', icon: '📏' },
+            { id: 'waktu', name: 'Waktu (t)', icon: '⏰' },
+            { id: 'massa', name: 'Massa (m)', icon: '⚖️' },
+            { id: 'percepatan', name: 'Percepatan (a)', icon: '🚀' },
+            { id: 'gravitasi', name: 'Gravitasi (g)', icon: '🌍' },
+            { id: 'ketinggian', name: 'Ketinggian (h)', icon: '🏔️' },
+            { id: 'gaya', name: 'Gaya (F)', icon: '💪' },
+            { id: 'tekanan', name: 'Tekanan (P)', icon: '🔽' },
+            { id: 'volume', name: 'Volume (V)', icon: '📦' },
+            { id: 'suhu', name: 'Suhu (T)', icon: '🌡️' },
+            { id: 'kalor', name: 'Kalor (Q)', icon: '🔥' },
+            { id: 'frekuensi', name: 'Frekuensi (f)', icon: '〰️' },
+            { id: 'panjang_gelombang', name: 'Panjang Gelombang (λ)', icon: '🌊' },
+            { id: 'kecepatan_cahaya', name: 'Kecepatan Cahaya (c)', icon: '💡' },
+            { id: 'muatan', name: 'Muatan (Q)', icon: '⚡' },
+            { id: 'tegangan', name: 'Tegangan (V)', icon: '🔋' },
+            { id: 'arus', name: 'Arus (I)', icon: '⚡' }
+        ];
+
+        const combinations = {
+            'jarak+waktu': { name: 'Kecepatan (v = s/t)', icon: '🏃', formula: 'v = s/t' },
+            'massa+percepatan': { name: 'Gaya (F = ma)', icon: '💪', formula: 'F = ma' },
+            'massa+gravitasi': { name: 'Berat (W = mg)', icon: '⚖️', formula: 'W = mg' },
+            'massa+gravitasi+ketinggian': { name: 'Energi Potensial (Ep = mgh)', icon: '⛰️', formula: 'Ep = mgh' },
+            'gaya+jarak': { name: 'Usaha (W = F×s)', icon: '🔨', formula: 'W = F×s' },
+            'tekanan+volume': { name: 'Hukum Boyle (PV = konstan)', icon: '🎈', formula: 'PV = konstan' },
+            'kalor+massa': { name: 'Kapasitas Kalor', icon: '🔥', formula: 'Q = mcΔT' },
+            'frekuensi+panjang_gelombang': { name: 'Kecepatan Gelombang (v = fλ)', icon: '🌊', formula: 'v = fλ' },
+            'tegangan+arus': { name: 'Hukum Ohm (V = IR)', icon: '⚡', formula: 'V = IR' },
+            'muatan+tegangan': { name: 'Energi Listrik (W = QV)', icon: '🔋', formula: 'W = QV' },
+            'jarak+waktu+waktu': { name: 'Percepatan (a = 2s/t²)', icon: '🚀', formula: 'a = 2s/t²' },
+            'massa+kecepatan': { name: 'Momentum (p = mv)', icon: '🎯', formula: 'p = mv' },
+            'gaya+waktu': { name: 'Impuls (I = FΔt)', icon: '💥', formula: 'I = FΔt' }
+        };
+
+        let discoveredElements = new Set();
+        let currentSlots = { slot1: null, slot2: null };
+        let stats = { discovered: 0, combinations: 0 };
+
+        // Initialize game
+        function initGame() {
+            renderElements();
+            setupDragAndDrop();
+            updateStats();
+        }
+
+        function renderElements() {
+            const grid = document.getElementById('elementsGrid');
+            grid.innerHTML = '';
+            
+            baseElements.forEach(element => {
+                const div = document.createElement('div');
+                div.className = 'element';
+                div.draggable = true;
+                div.dataset.elementId = element.id;
+                div.innerHTML = `${element.icon}<br>${element.name}`;
+                grid.appendChild(div);
+            });
+
+            // Add discovered combinations as new elements
+            discoveredElements.forEach(combo => {
+                if (combinations[combo]) {
+                    const div = document.createElement('div');
+                    div.className = 'element discovered';
+                    div.draggable = true;
+                    div.dataset.elementId = combo;
+                    div.innerHTML = `${combinations[combo].icon}<br>${combinations[combo].name}`;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function setupDragAndDrop() {
+            const elementsGrid = document.getElementById('elementsGrid');
+            const mixingArea = document.getElementById('mixingArea');
+            const combineBtn = document.getElementById('combineBtn');
+            const clearBtn = document.getElementById('clearBtn');
+
+            elementsGrid.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('element')) {
+                    e.target.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', e.target.dataset.elementId);
+                }
+            });
+
+            elementsGrid.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+            });
+
+            mixingArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                mixingArea.classList.add('drag-over');
+            });
+
+            mixingArea.addEventListener('dragleave', () => {
+                mixingArea.classList.remove('drag-over');
+            });
+
+            mixingArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                mixingArea.classList.remove('drag-over');
+                
+                const elementId = e.dataTransfer.getData('text/plain');
+                const element = baseElements.find(el => el.id === elementId) || 
+                               (combinations[elementId] ? { id: elementId, name: combinations[elementId].name, icon: combinations[elementId].icon } : null);
+                
+                if (element) {
+                    if (!currentSlots.slot1) {
+                        fillSlot('slot1', element);
+                    } else if (!currentSlots.slot2) {
+                        fillSlot('slot2', element);
+                    }
+                    updateCombineButton();
+                }
+            });
+
+            combineBtn.addEventListener('click', combineElements);
+            clearBtn.addEventListener('click', clearSlots);
+        }
+
+        function fillSlot(slotId, element) {
+            const slot = document.getElementById(slotId);
+            slot.classList.add('filled');
+            slot.innerHTML = `${element.icon}<br>${element.name}`;
+            currentSlots[slotId] = element.id;
+        }
+
+        function clearSlots() {
+            ['slot1', 'slot2'].forEach(slotId => {
+                const slot = document.getElementById(slotId);
+                slot.classList.remove('filled');
+                slot.innerHTML = slotId === 'slot1' ? 'Konsep 1' : 'Konsep 2';
+                currentSlots[slotId] = null;
+            });
+            updateCombineButton();
+        }
+
+        function updateCombineButton() {
+            const btn = document.getElementById('combineBtn');
+            btn.disabled = !currentSlots.slot1 || !currentSlots.slot2;
+        }
+
+        function combineElements() {
+            if (!currentSlots.slot1 || !currentSlots.slot2) return;
+
+            stats.combinations++;
+            
+            const combo1 = `${currentSlots.slot1}+${currentSlots.slot2}`;
+            const combo2 = `${currentSlots.slot2}+${currentSlots.slot1}`;
+            
+            let result = combinations[combo1] || combinations[combo2];
+            
+            // Check for triple combinations
+            if (!result) {
+                const tripleCombo = `${currentSlots.slot1}+${currentSlots.slot2}+${currentSlots.slot2}`;
+                result = combinations[tripleCombo];
+            }
+
+            if (result) {
+                const comboKey = combo1 in combinations ? combo1 : combo2;
+                if (!discoveredElements.has(comboKey)) {
+                    discoveredElements.add(comboKey);
+                    stats.discovered++;
+                    showResult(`Penemuan Baru: ${result.name}!`, true);
+                    updateDiscoveredPanel();
+                    renderElements(); // Re-render to add new element
+                } else {
+                    showResult(`${result.name} - ${result.formula}`, false);
+                }
+            } else {
+                showResult('Tidak ada reaksi!', false);
+            }
+
+            clearSlots();
+            updateStats();
+        }
+
+        function showResult(message, isNew) {
+            const mixingArea = document.getElementById('mixingArea');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result-animation';
+            resultDiv.textContent = message;
+            resultDiv.style.background = isNew ? 
+                'linear-gradient(135deg, #27ae60, #229954)' : 
+                'linear-gradient(135deg, #f39c12, #e67e22)';
+            
+            mixingArea.appendChild(resultDiv);
+            
+            setTimeout(() => {
+                mixingArea.removeChild(resultDiv);
+            }, 2000);
+        }
+
+        function updateDiscoveredPanel() {
+            const grid = document.getElementById('discoveredGrid');
+            grid.innerHTML = '';
+            
+            if (discoveredElements.size === 0) {
+                grid.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 20px;">Mulai gabungkan konsep untuk menemukan rumus fisika!</div>';
+                return;
+            }
+
+            discoveredElements.forEach(combo => {
+                const result = combinations[combo];
+                if (result) {
+                    const div = document.createElement('div');
+                    div.className = 'discovered-item';
+                    div.innerHTML = `${result.icon} ${result.name}<br><small>${result.formula}</small>`;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('discoveredCount').textContent = stats.discovered;
+            document.getElementById('combinationsCount').textContent = stats.combinations;
+        }
+
+        // Initialize the game when page loads
+        initGame();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9842dccd37239fb9',t:'MTc1ODcyMjk5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
